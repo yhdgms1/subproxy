@@ -1,0 +1,27 @@
+[package]
+name = "subproxy"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+tokio = { version = "1.52.2", features = ["full"] }
+axum = { version = "0.8.9", features = ["macros"]}
+axum-server = { version = "0.8.0", features = ["tls-rustls"] }
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.149"
+bytes = "1.11.1"
+tower-http = { version = "0.6.9", features = ["cors", "fs"] }
+tower = "0.5.3"
+http-body-util = "0.1.3"
+serde_qs = { version = "1.1.2", features = ["axum"] }
+axum-extra = { version =  "0.12.6", features = ["query"] }
+reqwest = "0.13.3"
+anyhow = "1.0.102"
+form_urlencoded = "1.2.2"
+
+
+[profile.release]
+opt-level = "z"
+strip = true
+lto = true
+panic = "abort"
