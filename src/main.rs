@@ -66,14 +66,10 @@ async fn get_handler(Query(params): Query<GetHandlerQuery>) -> impl IntoResponse
     let mut header_map = HeaderMap::new();
 
     for chunk in headers.chunks_exact(2) {
-        let name = chunk[0].to_string();
+        let header_name = HeaderName::from_bytes(chunk[0].as_bytes()).unwrap();
+        let header_value = HeaderValue::from_bytes(chunk[1].as_bytes()).unwrap();
 
-        if HEADERS_WHITELIST.contains(&&name.to_ascii_lowercase().as_str()) {
-            let header_name = HeaderName::from_str(&name).unwrap();
-            let header_value = HeaderValue::from_bytes(chunk[1].as_bytes()).unwrap();
-
-            header_map.insert(header_name, header_value);
-        }
+        header_map.insert(header_name, header_value);
     }
 
     let response = Client::new()
@@ -86,8 +82,10 @@ async fn get_handler(Query(params): Query<GetHandlerQuery>) -> impl IntoResponse
     let mut res = Response::builder().status(StatusCode::OK);
 
     if let Some(headers) = res.headers_mut() {
-        for (name, value) in response.headers() {
-            headers.append(name, value.clone());
+        for (name, value) in response.headers() {     
+            if HEADERS_WHITELIST.contains(&name.to_string().to_ascii_lowercase().as_str()) {
+                headers.append(name, value.clone());
+            }
         }
     }
 
@@ -103,10 +101,12 @@ async fn whoami_handler(headers: HeaderMap) -> impl IntoResponse {
             let name_str = name.as_str().to_lowercase();
 
             if name_str == "user-agent" || name_str.starts_with("x-") {
-                if let Ok(value_str) = value.to_str() {
-                    if !value_str.is_empty() {
-                        serializer.append_pair("headers", name_str.as_str());
-                        serializer.append_pair("headers", value_str);
+                if name_str != "x-real-ip" && name_str != "x-forwarded-for" && name_str != "x-forwarded-proto" && name_str != "x-forwarded-host" && name_str != "x-forwarded-port" {
+                    if let Ok(value_str) = value.to_str() {
+                        if !value_str.is_empty() {
+                            serializer.append_pair("headers", name_str.as_str());
+                            serializer.append_pair("headers", value_str);
+                        }
                     }
                 }
             }
