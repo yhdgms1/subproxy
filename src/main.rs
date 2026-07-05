@@ -5,10 +5,22 @@ use form_urlencoded::Serializer;
 use reqwest::Client;
 use serde::Deserialize;
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
+use std::str::FromStr;
 use tower::ServiceBuilder;
 use tower_http::cors::{Any, CorsLayer};
 
 const VLESS_CONFIG_TEMPLATE: &'static str = include_str!("./vless-config-template.json");
+const HEADERS_WHITELIST: [&str; 9] = [
+    "subscription-userinfo",
+    "profile-update-interval", 
+    "profile-title",
+    "profile-web-page-url",
+    "support-url",
+    "announce",
+    "announce-url",
+    "content-type",
+    "content-length"
+];
 
 #[tokio::main]
 async fn main() {
@@ -53,12 +65,15 @@ async fn get_handler(Query(params): Query<GetHandlerQuery>) -> impl IntoResponse
 
     let mut header_map = HeaderMap::new();
 
-    // тут надо всё переделать мне не нравится вообще как-то
     for chunk in headers.chunks_exact(2) {
-        let name = HeaderName::from_bytes(chunk[0].as_bytes()).unwrap();
-        let value = HeaderValue::from_bytes(chunk[1].as_bytes()).unwrap();
+        let name = chunk[0].to_string();
 
-        header_map.insert(name, value);
+        if HEADERS_WHITELIST.contains(&&name.to_ascii_lowercase().as_str()) {
+            let header_name = HeaderName::from_str(&name).unwrap();
+            let header_value = HeaderValue::from_bytes(chunk[1].as_bytes()).unwrap();
+
+            header_map.insert(header_name, header_value);
+        }
     }
 
     let response = Client::new()
