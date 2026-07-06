@@ -102,21 +102,25 @@ async fn sub_handler(
     let mut header_map = HeaderMap::new();
 
     for chunk in headers.chunks_exact(2) {
-        let header_name = match HeaderName::from_bytes(chunk[0].as_bytes()) {
-            Err(_) => {
-                return res.body(VLESS_ERROR_TEMPLATE.replace("{{title}}", "%D0%9D%D0%B5%D0%BA%D0%BE%D1%80%D1%80%D0%B5%D0%BA%D1%82%D0%BD%D0%BE%D0%B5%20%D0%B8%D0%BC%D1%8F%20%D0%B7%D0%B0%D0%B3%D0%BE%D0%BB%D0%BE%D0%B2%D0%BA%D0%B0")).unwrap();
-            }
-            Ok(val) => val,
-        };
+        let name =  chunk[0].to_string();
 
-        let header_value = match HeaderValue::from_bytes(chunk[1].as_bytes()) {
-            Err(_) => {
-                return res.body(VLESS_ERROR_TEMPLATE.replace("{{title}}", "%D0%9D%D0%B5%D0%BA%D0%BE%D1%80%D1%80%D0%B5%D0%BA%D1%82%D0%BD%D0%BE%D0%B5%20%D0%B7%D0%BD%D0%B0%D1%87%D0%B5%D0%BD%D0%B8%D0%B5%20%D0%B7%D0%B0%D0%B3%D0%BE%D0%BB%D0%BE%D0%B2%D0%BA%D0%B0")).unwrap();
-            }
-            Ok(val) => val,
-        };
+        if name.to_ascii_lowercase() == "user-agent" || name.starts_with("x-") {
+            let header_name = match HeaderName::from_bytes(chunk[0].as_bytes()) {
+                Err(_) => {
+                    return res.body(VLESS_ERROR_TEMPLATE.replace("{{title}}", "%D0%9D%D0%B5%D0%BA%D0%BE%D1%80%D1%80%D0%B5%D0%BA%D1%82%D0%BD%D0%BE%D0%B5%20%D0%B8%D0%BC%D1%8F%20%D0%B7%D0%B0%D0%B3%D0%BE%D0%BB%D0%BE%D0%B2%D0%BA%D0%B0")).unwrap();
+                }
+                Ok(val) => val,
+            };
 
-        header_map.insert(header_name, header_value);
+            let header_value = match HeaderValue::from_bytes(chunk[1].as_bytes()) {
+                Err(_) => {
+                    return res.body(VLESS_ERROR_TEMPLATE.replace("{{title}}", "%D0%9D%D0%B5%D0%BA%D0%BE%D1%80%D1%80%D0%B5%D0%BA%D1%82%D0%BD%D0%BE%D0%B5%20%D0%B7%D0%BD%D0%B0%D1%87%D0%B5%D0%BD%D0%B8%D0%B5%20%D0%B7%D0%B0%D0%B3%D0%BE%D0%BB%D0%BE%D0%B2%D0%BA%D0%B0")).unwrap();
+                }
+                Ok(val) => val,
+            };
+
+            header_map.insert(header_name, header_value);
+        }
     }
 
     let client = match Client::builder()
