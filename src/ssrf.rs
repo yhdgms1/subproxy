@@ -7,12 +7,8 @@ pub async fn is_host_safe(host: &str) -> bool {
     }
 
     match lookup_host((host, 0u16)).await {
-        Ok(addrs) => {
-            addrs.into_iter().all(|addr| is_public_ip(addr.ip()))
-        }
-        Err(_) => {
-            false
-        }
+        Ok(addrs) => addrs.into_iter().all(|addr| is_public_ip(addr.ip())),
+        Err(_) => false,
     }
 }
 
@@ -39,6 +35,6 @@ fn is_public_ip(ip: IpAddr) -> bool {
 /// Проверяет, относится ли ip к fc00::/7 (Unique Local Addresses)
 fn is_ipv6_unique_local(ip: Ipv6Addr) -> bool {
     let b = ip.octets();
-    
+
     b[0] == 0xfc || b[0] == 0xfd
 }
