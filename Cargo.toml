@@ -12,6 +12,7 @@ tower-http = { version = "0.7.0", features = ["cors", "fs"] }
 tower = "0.5.3"
 reqwest = "0.13.4"
 base64 = "0.22.1"
+tower_governor = "0.8.0"
 
 [profile.release]
 opt-level = "z"

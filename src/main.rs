@@ -8,6 +8,9 @@ use reqwest::{Client, Url};
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
 use std::time::Duration;
 use tower::ServiceBuilder;
+use tower_governor::{
+    GovernorLayer, governor::GovernorConfigBuilder, key_extractor::SmartIpKeyExtractor,
+};
 use tower_http::cors::{Any, CorsLayer};
 
 const VLESS_CONFIG_TEMPLATE: &'static str = include_str!("./vless-config-template.json");
@@ -30,10 +33,29 @@ async fn main() {
         .allow_methods([Method::GET])
         .allow_origin(Any);
 
+    let governor_conf = GovernorConfigBuilder::default()
+        .key_extractor(SmartIpKeyExtractor)
+        .period(Duration::from_secs(60))
+        .burst_size(10)
+        .finish()
+        .unwrap();
+
+    let governor_limiter = governor_conf.limiter().clone();
+
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(Duration::from_secs(120));
+
+        loop {
+            interval.tick().await;
+            governor_limiter.retain_recent();
+        }
+    });
+
     let app = Router::new()
         .route("/whoami", get(whoami_handler))
         .route("/{host}/{path}/{headers}", get(sub_handler))
-        .layer(ServiceBuilder::new().layer(cors));
+        .layer(ServiceBuilder::new().layer(cors))
+        .layer(GovernorLayer::new(governor_conf));
 
     let addr: SocketAddr = SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(0, 0, 0, 0), 8080));
 
@@ -106,7 +128,7 @@ async fn sub_handler(
     let mut header_map = HeaderMap::new();
 
     for chunk in headers.chunks_exact(2) {
-        let name =  chunk[0].to_string();
+        let name = chunk[0].to_string();
 
         if name.to_ascii_lowercase() == "user-agent" || name.starts_with("x-") {
             let header_name = match HeaderName::from_bytes(chunk[0].as_bytes()) {
