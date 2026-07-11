@@ -1,3 +1,4 @@
+mod headers;
 mod ssrf;
 
 use axum::http::{HeaderMap, HeaderName, HeaderValue, Method, Response, StatusCode};
@@ -15,17 +16,6 @@ use tower_http::cors::{Any, CorsLayer};
 
 const VLESS_CONFIG_TEMPLATE: &'static str = include_str!("./vless-config-template.json");
 const VLESS_ERROR_TEMPLATE: &'static str = include_str!("./vless-error-template.json");
-const HEADERS_WHITELIST: [&str; 9] = [
-    "subscription-userinfo",
-    "profile-update-interval",
-    "profile-title",
-    "profile-web-page-url",
-    "support-url",
-    "announce",
-    "announce-url",
-    "content-type",
-    "content-length",
-];
 
 #[tokio::main]
 async fn main() {
@@ -128,9 +118,7 @@ async fn sub_handler(
     let mut header_map = HeaderMap::new();
 
     for chunk in headers.chunks_exact(2) {
-        let name = chunk[0].to_string();
-
-        if name.to_ascii_lowercase() == "user-agent" || name.starts_with("x-") {
+        if headers::is_allowed_client_header(&chunk[0].to_string()) {
             let header_name = match HeaderName::from_bytes(chunk[0].as_bytes()) {
                 Err(_) => {
                     return res.body(VLESS_ERROR_TEMPLATE.replace("{{title}}", "%D0%9D%D0%B5%D0%BA%D0%BE%D1%80%D1%80%D0%B5%D0%BA%D1%82%D0%BD%D0%BE%D0%B5%20%D0%B8%D0%BC%D1%8F%20%D0%B7%D0%B0%D0%B3%D0%BE%D0%BB%D0%BE%D0%B2%D0%BA%D0%B0")).unwrap();
@@ -169,7 +157,7 @@ async fn sub_handler(
 
     if let Some(headers) = res.headers_mut() {
         for (name, value) in response.headers() {
-            if HEADERS_WHITELIST.contains(&name.to_string().to_ascii_lowercase().as_str()) {
+            if headers::is_allowed_subscription_header(&name.to_string()) {
                 headers.append(name, value.clone());
             }
         }
@@ -187,18 +175,11 @@ async fn whoami_handler(headers: HeaderMap) -> impl IntoResponse {
         if let Some(name) = name {
             let name_str = name.as_str().to_lowercase();
 
-            if name_str == "user-agent" || name_str.starts_with("x-") {
-                if name_str != "x-real-ip"
-                    && name_str != "x-forwarded-for"
-                    && name_str != "x-forwarded-proto"
-                    && name_str != "x-forwarded-host"
-                    && name_str != "x-forwarded-port"
-                {
-                    if let Ok(value_str) = value.to_str() {
-                        if !value_str.is_empty() {
-                            headers_vec.push(name_str);
-                            headers_vec.push(value_str.to_string());
-                        }
+            if headers::is_allowed_whoami_header(name.as_str()) {
+                if let Ok(value_str) = value.to_str() {
+                    if !value_str.is_empty() {
+                        headers_vec.push(name_str);
+                        headers_vec.push(value_str.to_string());
                     }
                 }
             }
