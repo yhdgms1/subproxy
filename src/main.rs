@@ -182,7 +182,7 @@ async fn whoami_handler(headers: HeaderMap) -> impl IntoResponse {
         if let Some(name) = name {
             let name_str = name.as_str().to_lowercase();
 
-            if headers::is_allowed_whoami_header(name.as_str()) {
+            if headers::is_allowed_whoami_header(&name_str) {
                 if let Ok(value_str) = value.to_str() {
                     if !value_str.is_empty() {
                         headers_vec.push(name_str);
