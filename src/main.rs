@@ -14,8 +14,8 @@ use tower_governor::{
 };
 use tower_http::cors::{Any, CorsLayer};
 
-const VLESS_CONFIG_TEMPLATE: &'static str = include_str!("./vless-config-template.json");
-const VLESS_ERROR_TEMPLATE: &'static str = include_str!("./vless-error-template.json");
+const VLESS_WHOAMI_TEMPLATE: &'static str = include_str!("./vless-templates/whoami.json");
+const VLESS_ERROR_TEMPLATE: &'static str = include_str!("./vless-templates/error.txt");
 
 #[tokio::main]
 async fn main() {
@@ -206,6 +206,6 @@ async fn whoami_handler(headers: HeaderMap) -> impl IntoResponse {
         .header("announce", "base64:0J3QsNC20LzQuCDQvdCwINGB0YLRgNC10LvQutGDINGB0L/RgNCw0LLQsCDQvtGCINGB0LXRgNCy0LXRgNCw")
         .header("profile-title", "base64:c3VicHJveHk=")
         .header("title", "auto")
-        .body(VLESS_CONFIG_TEMPLATE.replace("{{id}}", &encoded))
+        .body(VLESS_WHOAMI_TEMPLATE.replace("{{id}}", &encoded))
         .unwrap();
 }
