@@ -1,0 +1,1 @@
+{"outbounds":[{"tag":"info","protocol":"vless","settings":{"vnext":[{"address":"0.0.0.0","port":1,"users":[{"id":"00000000-0000-0000-0000-000000000000"}]}]}}],"remarks":"{{title}}"}

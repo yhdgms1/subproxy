@@ -4,6 +4,7 @@ mod ssrf;
 use axum::http::{HeaderMap, HeaderName, HeaderValue, Method, Response, StatusCode};
 use axum::{Router, extract::Path, response::IntoResponse, routing::get};
 use base64::{Engine as _, engine::general_purpose::URL_SAFE};
+use reqwest::header::CONTENT_TYPE;
 use reqwest::redirect::Policy;
 use reqwest::{Client, Url};
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
@@ -15,7 +16,8 @@ use tower_governor::{
 use tower_http::cors::{Any, CorsLayer};
 
 const VLESS_WHOAMI_TEMPLATE: &'static str = include_str!("./vless-templates/whoami.json");
-const VLESS_ERROR_TEMPLATE: &'static str = include_str!("./vless-templates/error.txt");
+const VLESS_ERROR_TEMPLATE: &'static str = include_str!("./vless-templates/error.json");
+const CONTENT_TYPE_JSON: &'static str = "application/json; charset=UTF-8";
 
 #[tokio::main]
 async fn main() {
@@ -62,12 +64,18 @@ async fn sub_handler(
     let mut res = Response::builder().status(StatusCode::OK);
 
     if headers.len() > 2 * 1024 {
-        return res.body(VLESS_ERROR_TEMPLATE.replace("{{title}}", "%D0%A0%D0%B0%D0%B7%D0%BC%D0%B5%D1%80%20%D0%B7%D0%B0%D0%B3%D0%BE%D0%BB%D0%BE%D0%B2%D0%BA%D0%BE%D0%B2%20%D0%BF%D1%80%D0%B5%D0%B2%D1%8B%D1%88%D0%B0%D0%B5%D1%82%20%D0%B4%D0%BE%D0%BF%D1%83%D1%81%D1%82%D0%B8%D0%BC%D0%BE%D0%B5%20%D0%B7%D0%BD%D0%B0%D1%87%D0%B5%D0%BD%D0%B8%D0%B5")).unwrap();
+        return res
+            .header(CONTENT_TYPE, CONTENT_TYPE_JSON)
+            .body(VLESS_ERROR_TEMPLATE.replace("{{title}}", "Размер заголовков слишком велик"))
+            .unwrap();
     }
 
     let mut url = match Url::parse(&format!("https://{}", host)) {
         Err(_) => {
-            return res.body(VLESS_ERROR_TEMPLATE.replace("{{title}}", "%D0%9D%D0%B5%D0%B2%D0%B5%D1%80%D0%BD%D1%8B%D0%B9%20%D0%B0%D0%B4%D1%80%D0%B5%D1%81")).unwrap();
+            return res
+                .header(CONTENT_TYPE, CONTENT_TYPE_JSON)
+                .body(VLESS_ERROR_TEMPLATE.replace("{{title}}", "Неверный адрес"))
+                .unwrap();
         }
         Ok(url) => url,
     };
@@ -76,43 +84,56 @@ async fn sub_handler(
 
     let host_str = match url.host_str() {
         None => {
-            return res.body(VLESS_ERROR_TEMPLATE.replace("{{title}}", "%D0%9D%D0%B5%D0%BA%D0%BE%D1%80%D1%80%D0%B5%D0%BA%D1%82%D0%BD%D1%8B%D0%B9%20%D1%85%D0%BE%D1%81%D1%82")).unwrap();
+            return res
+                .header(CONTENT_TYPE, CONTENT_TYPE_JSON)
+                .body(VLESS_ERROR_TEMPLATE.replace("{{title}}", "Некорректный хост"))
+                .unwrap();
         }
         Some(host) => host,
     };
 
     if !ssrf::is_host_safe(host_str).await {
         return res
-            .body(VLESS_ERROR_TEMPLATE.replace(
-                "{{title}}",
-                "%D0%A5%D0%BE%D1%81%D1%82%20%D0%B7%D0%B0%D0%BF%D1%80%D0%B5%D1%89%D1%91%D0%BD",
-            ))
+            .header(CONTENT_TYPE, CONTENT_TYPE_JSON)
+            .body(VLESS_ERROR_TEMPLATE.replace("{{title}}", "Хост запрещён"))
             .unwrap();
     }
 
     let headers = match URL_SAFE.decode(headers) {
         Err(_) => {
-            return res.body(VLESS_ERROR_TEMPLATE.replace("{{title}}", "%D0%9E%D1%88%D0%B8%D0%B1%D0%BA%D0%B0%20%D0%B4%D0%B5%D0%BA%D0%BE%D0%B4%D0%B8%D1%80%D0%BE%D0%B2%D0%B0%D0%BD%D0%B8%D1%8F%20%D0%B7%D0%B0%D0%B3%D0%BE%D0%BB%D0%BE%D0%B2%D0%BA%D0%BE%D0%B2")).unwrap();
+            return res
+                .header(CONTENT_TYPE, CONTENT_TYPE_JSON)
+                .body(VLESS_ERROR_TEMPLATE.replace("{{title}}", "Ошибка декодирования заголовков"))
+                .unwrap();
         }
         Ok(headers) => headers,
     };
 
     let headers = match String::from_utf8(headers) {
         Err(_) => {
-            return res.body(VLESS_ERROR_TEMPLATE.replace("{{title}}", "%D0%9E%D1%88%D0%B8%D0%B1%D0%BA%D0%B0%20%D0%BA%D0%BE%D0%BD%D0%B2%D0%B5%D1%80%D1%82%D0%B0%D1%86%D0%B8%D0%B8%20%D0%B7%D0%B0%D0%B3%D0%BE%D0%BB%D0%BE%D0%B2%D0%BA%D0%BE%D0%B2")).unwrap();
+            return res
+                .header(CONTENT_TYPE, CONTENT_TYPE_JSON)
+                .body(VLESS_ERROR_TEMPLATE.replace("{{title}}", "Ошибка конвертации заголовков"))
+                .unwrap();
         }
         Ok(headers) => headers,
     };
 
     let headers: Vec<String> = match serde_json::from_str(&headers) {
         Err(_) => {
-            return res.body(VLESS_ERROR_TEMPLATE.replace("{{title}}", "%D0%9E%D1%88%D0%B8%D0%B1%D0%BA%D0%B0%20%D0%BF%D0%B0%D1%80%D1%81%D0%B8%D0%BD%D0%B3%D0%B0%20%D0%B7%D0%B0%D0%B3%D0%BE%D0%BB%D0%BE%D0%B2%D0%BA%D0%BE%D0%B2")).unwrap();
+            return res
+                .header(CONTENT_TYPE, CONTENT_TYPE_JSON)
+                .body(VLESS_ERROR_TEMPLATE.replace("{{title}}", "Ошибка парсинга заголовков"))
+                .unwrap();
         }
         Ok(headers) => headers,
     };
 
     if headers.len() % 2 != 0 {
-        return res.body(VLESS_ERROR_TEMPLATE.replace("{{title}}", "%D0%9D%D0%B5%D1%87%D1%91%D1%82%D0%BD%D0%BE%D0%B5%20%D0%BA%D0%BE%D0%BB%D0%B8%D1%87%D0%B5%D1%81%D1%82%D0%B2%D0%BE%20%D0%B7%D0%B0%D0%B3%D0%BE%D0%BB%D0%BE%D0%B2%D0%BA%D0%BE%D0%B2")).unwrap();
+        return res
+            .header(CONTENT_TYPE, CONTENT_TYPE_JSON)
+            .body(VLESS_ERROR_TEMPLATE.replace("{{title}}", "Нечётное количество заголовков"))
+            .unwrap();
     }
 
     let mut header_map = HeaderMap::new();
@@ -121,14 +142,23 @@ async fn sub_handler(
         if headers::is_allowed_client_header(&chunk[0].to_string()) {
             let header_name = match HeaderName::from_bytes(chunk[0].as_bytes()) {
                 Err(_) => {
-                    return res.body(VLESS_ERROR_TEMPLATE.replace("{{title}}", "%D0%9D%D0%B5%D0%BA%D0%BE%D1%80%D1%80%D0%B5%D0%BA%D1%82%D0%BD%D0%BE%D0%B5%20%D0%B8%D0%BC%D1%8F%20%D0%B7%D0%B0%D0%B3%D0%BE%D0%BB%D0%BE%D0%B2%D0%BA%D0%B0")).unwrap();
+                    return res
+                        .header(CONTENT_TYPE, CONTENT_TYPE_JSON)
+                        .body(VLESS_ERROR_TEMPLATE.replace("{{title}}", "Некорректный заголовок"))
+                        .unwrap();
                 }
                 Ok(val) => val,
             };
 
             let header_value = match HeaderValue::from_bytes(chunk[1].as_bytes()) {
                 Err(_) => {
-                    return res.body(VLESS_ERROR_TEMPLATE.replace("{{title}}", "%D0%9D%D0%B5%D0%BA%D0%BE%D1%80%D1%80%D0%B5%D0%BA%D1%82%D0%BD%D0%BE%D0%B5%20%D0%B7%D0%BD%D0%B0%D1%87%D0%B5%D0%BD%D0%B8%D0%B5%20%D0%B7%D0%B0%D0%B3%D0%BE%D0%BB%D0%BE%D0%B2%D0%BA%D0%B0")).unwrap();
+                    return res
+                        .header(CONTENT_TYPE, CONTENT_TYPE_JSON)
+                        .body(
+                            VLESS_ERROR_TEMPLATE
+                                .replace("{{title}}", "Некорректное значение заголовка"),
+                        )
+                        .unwrap();
                 }
                 Ok(val) => val,
             };
@@ -143,14 +173,20 @@ async fn sub_handler(
         .build()
     {
         Err(_) => {
-            return res.body(VLESS_ERROR_TEMPLATE.replace("{{title}}", "%D0%9E%D1%88%D0%B8%D0%B1%D0%BA%D0%B0%20%D0%BD%D0%B0%D1%81%D1%82%D1%80%D0%BE%D0%B9%D0%BA%D0%B8%20HTTP%20%D0%BA%D0%BB%D0%B8%D0%B5%D0%BD%D1%82%D0%B0")).unwrap();
+            return res
+                .header(CONTENT_TYPE, CONTENT_TYPE_JSON)
+                .body(VLESS_ERROR_TEMPLATE.replace("{{title}}", "Ошибка настройки HTTP-клиента"))
+                .unwrap();
         }
         Ok(client) => client,
     };
 
     let response = match client.get(url).headers(header_map).send().await {
         Err(_) => {
-            return res.body(VLESS_ERROR_TEMPLATE.replace("{{title}}", "%D0%9E%D1%88%D0%B8%D0%B1%D0%BA%D0%B0%20%D0%BE%D1%82%D0%BF%D1%80%D0%B0%D0%B2%D0%BA%D0%B8%20%D0%B7%D0%B0%D0%BF%D1%80%D0%BE%D1%81%D0%B0")).unwrap();
+            return res
+                .header(CONTENT_TYPE, CONTENT_TYPE_JSON)
+                .body(VLESS_ERROR_TEMPLATE.replace("{{title}}", "Ошибка отправки запроса"))
+                .unwrap();
         }
         Ok(val) => val,
     };
@@ -165,7 +201,10 @@ async fn sub_handler(
 
     let text = match response.text().await {
         Err(_) => {
-            return res.body(VLESS_ERROR_TEMPLATE.replace("{{title}}", "%D0%9E%D1%88%D0%B8%D0%B1%D0%BA%D0%B0%20%D0%BF%D0%BE%D0%BB%D1%83%D1%87%D0%B5%D0%BD%D0%B8%D1%8F%20%D1%82%D0%B5%D0%BB%D0%B0%20%D0%BE%D1%82%D0%B2%D0%B5%D1%82%D0%B0")).unwrap();
+            return res
+                .header(CONTENT_TYPE, CONTENT_TYPE_JSON)
+                .body(VLESS_ERROR_TEMPLATE.replace("{{title}}", "Ошибка получения тела ответа"))
+                .unwrap();
         }
         Ok(text) => text,
     };
@@ -175,7 +214,9 @@ async fn sub_handler(
 
 #[axum::debug_handler]
 async fn whoami_handler(headers: HeaderMap) -> impl IntoResponse {
-    let res = Response::builder().status(StatusCode::OK);
+    let res = Response::builder()
+        .header(CONTENT_TYPE, CONTENT_TYPE_JSON)
+        .status(StatusCode::OK);
     let mut headers_vec = Vec::new();
 
     for (name, value) in headers {
@@ -195,7 +236,9 @@ async fn whoami_handler(headers: HeaderMap) -> impl IntoResponse {
 
     let json = match serde_json::to_string(&headers_vec) {
         Err(_) => {
-            return res.body(VLESS_ERROR_TEMPLATE.replace("{{title}}", "%D0%9E%D1%88%D0%B8%D0%B1%D0%BA%D0%B0%20%D1%81%D0%B5%D1%80%D0%B8%D0%B0%D0%BB%D0%B8%D0%B7%D0%B0%D1%86%D0%B8%D0%B8")).unwrap();
+            return res
+                .body(VLESS_ERROR_TEMPLATE.replace("{{title}}", "Ошибка сериализации"))
+                .unwrap();
         }
         Ok(val) => val,
     };

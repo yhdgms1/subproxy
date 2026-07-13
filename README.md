@@ -14,7 +14,7 @@ cargo zigbuild --target x86_64-unknown-linux-musl --release
 
 ## Развертывание
 
-```/etc/nginx/sites-enabled/subproxy
+```/etc/angie/sites-enabled/subproxy
 server {
     listen 80;
     server_name <domain>;
@@ -29,11 +29,16 @@ server {
 }
 
 server {
-    listen 443 ssl http2;
+    listen 443 ssl;
+    listen 443 quic reuseport;
+    http2 on;
+
     server_name <domain>;
 
     ssl_certificate /etc/letsencrypt/live/<domain>/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/<domain>/privkey.pem;
+
+    add_header Alt-Svc 'h3=":443"; ma=86400;' always;
 
     add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
     add_header X-Frame-Options "SAMEORIGIN" always;
