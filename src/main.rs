@@ -1,11 +1,14 @@
+mod bot;
 mod headers;
 mod script;
 mod ssrf;
 mod subscription;
 
-use axum::extract::State;
-use axum::http::{HeaderMap, Method, Response, StatusCode};
-use axum::{Router, extract::Path, response::IntoResponse, routing::get};
+use axum::extract::{Path, Request, State};
+use axum::http::{HeaderMap, Method, StatusCode};
+use axum::middleware::{self, Next};
+use axum::response::{IntoResponse, Response};
+use axum::{Router, routing::get};
 use base64::{Engine as _, engine::general_purpose::URL_SAFE};
 use reqwest::Client;
 use reqwest::header::CONTENT_TYPE;
@@ -57,6 +60,7 @@ async fn main() {
         .route("/whoami", get(whoami_handler))
         .route("/{host}/{path}/{headers}", get(sub_handler))
         .route("/{host}/{path}/{headers}/{script}", get(script_handler))
+        .layer(middleware::from_fn(bot_middleware))
         .layer(ServiceBuilder::new().layer(cors))
         .layer(GovernorLayer::new(governor_conf))
         .with_state(state);
@@ -67,6 +71,19 @@ async fn main() {
         .serve(app.into_make_service())
         .await
         .unwrap();
+}
+
+async fn bot_middleware(request: Request, next: Next) -> Response {
+    let ua = request
+        .headers()
+        .get(axum::http::header::USER_AGENT)
+        .and_then(|v| v.to_str().ok());
+
+    if bot::is_bot(ua) {
+        return (StatusCode::IM_A_TEAPOT, "I'm a teapot").into_response();
+    }
+
+    next.run(request).await
 }
 
 #[axum::debug_handler]
