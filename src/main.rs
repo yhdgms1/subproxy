@@ -5,7 +5,7 @@ mod ssrf;
 mod subscription;
 
 use axum::extract::{Path, Request, State};
-use axum::http::{HeaderMap, Method, StatusCode};
+use axum::http::{HeaderMap, Method, StatusCode, header};
 use axum::middleware::{self, Next};
 use axum::response::{IntoResponse, Response};
 use axum::{Router, routing::get};
@@ -22,6 +22,8 @@ use tower_http::cors::{Any, CorsLayer};
 
 const VLESS_WHOAMI_TEMPLATE: &'static str = include_str!("./vless-templates/whoami.json");
 const CONTENT_TYPE_JSON: &'static str = "application/json; charset=UTF-8";
+const ROBOTS_TXT: &'static str = include_str!("./robots.txt");
+const LLMS_TXT: &'static str = include_str!("./llms.txt");
 
 #[derive(Clone)]
 struct AppState {
@@ -57,6 +59,8 @@ async fn main() {
     };
 
     let app = Router::new()
+        .route("/robots.txt", get(robots_handler))
+        .route("/llms.txt", get(llms_handler))
         .route("/whoami", get(whoami_handler))
         .route("/{host}/{path}/{headers}", get(sub_handler))
         .route("/{host}/{path}/{headers}/{script}", get(script_handler))
@@ -74,16 +78,72 @@ async fn main() {
 }
 
 async fn bot_middleware(request: Request, next: Next) -> Response {
+    let path = request.uri().path();
+
+    if path == "/robots.txt" || path == "/llms.txt" {
+        return next.run(request).await;
+    }
+
     let ua = request
         .headers()
-        .get(axum::http::header::USER_AGENT)
+        .get(header::USER_AGENT)
         .and_then(|v| v.to_str().ok());
 
     if bot::is_bot(ua) {
-        return (StatusCode::IM_A_TEAPOT, "I'm a teapot").into_response();
+        return (
+            StatusCode::FORBIDDEN,
+            [
+                (
+                    header::HeaderName::from_static("x-robots-tag"),
+                    "noindex, nofollow, noarchive",
+                ),
+                (
+                    header::HeaderName::from_static("cache-control"),
+                    "no-store, no-cache, must-revalidate",
+                ),
+            ],
+            "Forbidden",
+        )
+            .into_response();
     }
 
     next.run(request).await
+}
+
+#[axum::debug_handler]
+async fn robots_handler() -> impl IntoResponse {
+    (
+        [
+            (header::CONTENT_TYPE, "text/plain; charset=UTF-8"),
+            (
+                header::HeaderName::from_static("x-robots-tag"),
+                "noindex, nofollow, noarchive",
+            ),
+            (
+                header::HeaderName::from_static("cache-control"),
+                "public, max-age=86400",
+            ),
+        ],
+        ROBOTS_TXT,
+    )
+}
+
+#[axum::debug_handler]
+async fn llms_handler() -> impl IntoResponse {
+    (
+        [
+            (header::CONTENT_TYPE, "text/plain; charset=UTF-8"),
+            (
+                header::HeaderName::from_static("x-robots-tag"),
+                "noindex, nofollow, noarchive",
+            ),
+            (
+                header::HeaderName::from_static("cache-control"),
+                "public, max-age=86400",
+            ),
+        ],
+        LLMS_TXT,
+    )
 }
 
 #[axum::debug_handler]

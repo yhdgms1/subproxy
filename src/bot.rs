@@ -1,95 +1,219 @@
 pub const BOT_PATTERNS: &[&str] = &[
-    // Generic bot / crawler indicators
     "bot",
     "crawler",
     "spider",
     "scraper",
     "preview",
     "unfurl",
-
-    // Messengers & Social media link preview bots
-    "telegram",             // TelegramBot
-    "discord",              // Discordbot
-    "whatsapp",             // WhatsApp preview
-    "viber",                // Viber
-    "vkshare",              // VKontakte share bot
-    "vk.com",               // VK preview bot
-    "vk-bot",               // VK robot
-    "vkontakte",            // VKontakte
-    "odkl",                 // Odnoklassniki (OdklBot)
-    "odnoklassniki",        // Odnoklassniki
-    "ok.ru",                // ok.ru bot
-    "facebookexternalhit",  // Facebook link previewer
-    "facebot",              // Facebook crawler
-    "meta-externalagent",   // Meta external agent
-    "meta-externalfetcher", // Meta fetcher
-    "twitter",              // Twitterbot
-    "x-bot",                // X bot
-    "slack",                // Slackbot, Slack-ImgProxy
-    "skypeuripreview",      // Skype URL preview
-    "linkedin",             // LinkedInBot
-    "linespider",           // LINE spider
-    "micromessenger",       // WeChat preview / crawler
-    "mpcrawler",            // WeChat crawler
-    "applebot",             // Apple iMessage preview / Siri
-    "reddit",               // RedditBot
-    "pinterest",            // Pinterest
-    "snapchat",             // Snapchat URL preview
-    "tumblr",               // Tumblr
-    "bluesky",              // BlueskyCard
-    "mastodon",             // Mastodon
-    "pleroma",              // Pleroma
-    "misskey",              // Misskey
-    "lemmy",                // Lemmy
-    "matrix-media-repo",    // Matrix previewer
-
-    // Search engines & major web crawlers
-    "googlebot",            // Googlebot
-    "google-pagerenderer",  // Google preview
-    "google-inspectiontool",// Google inspection
-    "feedfetcher-google",   // Google feed fetcher
-    "bingbot",              // Bingbot
-    "bingpreview",          // Bing preview
-    "msnbot",               // MSN bot
-    "yandex",               // YandexBot, YandexImages, etc.
-    "baiduspider",          // Baidu
-    "duckduckbot",          // DuckDuckGo
-    "slurp",                // Yahoo Slurp
-    "sogou",                // Sogou
-    "seznambot",            // Seznam
-    "petalbot",             // PetalBot (Huawei)
-    "bytespider",           // ByteDance / TikTok
-    "tiktok",               // TikTok bot
-
-    // SEO, monitoring & security scanners
-    "ahrefs",               // AhrefsBot
-    "semrush",              // SemrushBot
-    "dotbot",               // Moz DotBot
-    "rogerbot",             // Moz RogerBot
-    "mj12bot",              // Majestic
-    "screaming frog",       // Screaming Frog
-    "ia_archiver",          // Internet Archive
-    "archive.org",          // Archive.org bot
-    "censys",               // Censys
-    "shodan",               // Shodan
-    "uptimerobot",          // UptimeRobot
-    "pingdom",              // Pingdom
-
-    // AI & LLM scrapers
-    "gptbot",               // OpenAI GPTBot
-    "chatgpt",              // ChatGPT-User
-    "oai-searchbot",        // OpenAI SearchBot
-    "claude",               // ClaudeBot, Claude-Web
-    "anthropic",            // Anthropic AI
-    "perplexity",           // Perplexity
-    "cohere",               // Cohere AI
-    "ccbot",                // Common Crawl
-    "amazonbot",            // Amazon Bot
-    "diffbot",              // Diffbot
+    "telegram",
+    "discord",
+    "whatsapp",
+    "viber",
+    "vkshare",
+    "vk.com",
+    "vk-bot",
+    "vkontakte",
+    "odkl",
+    "odnoklassniki",
+    "ok.ru",
+    "facebookexternalhit",
+    "facebot",
+    "meta-externalagent",
+    "meta-externalfetcher",
+    "twitter",
+    "x-bot",
+    "slack",
+    "skypeuripreview",
+    "linkedin",
+    "linespider",
+    "micromessenger",
+    "mpcrawler",
+    "applebot",
+    "reddit",
+    "pinterest",
+    "snapchat",
+    "tumblr",
+    "bluesky",
+    "mastodon",
+    "pleroma",
+    "misskey",
+    "lemmy",
+    "matrix-media-repo",
+    "googlebot",
+    "google-pagerenderer",
+    "google-inspectiontool",
+    "feedfetcher-google",
+    "bingbot",
+    "bingpreview",
+    "msnbot",
+    "yandex",
+    "baiduspider",
+    "duckduckbot",
+    "slurp",
+    "sogou",
+    "seznambot",
+    "petalbot",
+    "bytespider",
+    "tiktok",
+    "ahrefs",
+    "semrush",
+    "dotbot",
+    "rogerbot",
+    "mj12bot",
+    "screaming frog",
+    "ia_archiver",
+    "archive.org",
+    "censys",
+    "shodan",
+    "uptimerobot",
+    "pingdom",
+    "gptbot",
+    "chatgpt",
+    "oai-searchbot",
+    "claude",
+    "anthropic",
+    "perplexity",
+    "cohere",
+    "ccbot",
+    "amazonbot",
+    "diffbot",
+    "addsearchbot",
+    "agentdatabot",
+    "agenttimes",
+    "ai2bot",
+    "aihitbot",
+    "aiwebindex",
+    "amazon-kendra",
+    "amazon-qbusiness",
+    "amazonbuyforme",
+    "amzn-searchbot",
+    "amzn-user",
+    "andibot",
+    "anomura",
+    "apifybot",
+    "apifywebsitecontentcrawler",
+    "aranet-searchbot",
+    "atlassian-bot",
+    "awario",
+    "azureai-searchbot",
+    "bedrockbot",
+    "bigsur.ai",
+    "bixelbot",
+    "bravebot",
+    "brightbot",
+    "buddybot",
+    "channel3bot",
+    "chatglm-spider",
+    "cloudflare-autorag",
+    "cloudflarebrowserrenderingcrawler",
+    "cloudvertexbot",
+    "cotoyogi",
+    "cragcrawler",
+    "crawl4ai",
+    "crawlspace",
+    "cursor",
+    "datenbank crawler",
+    "deepseekbot",
+    "devin",
+    "doubaobot",
+    "duckassistbot",
+    "echobot",
+    "echoboxbot",
+    "erniebot",
+    "exabot",
+    "exasearchbot",
+    "facebookbot",
+    "factset_spyderbot",
+    "firecrawlagent",
+    "friendlycrawler",
+    "geisthaus-pagefetcher",
+    "gemini-deep-research",
+    "google-agent",
+    "google-cloudvertexbot",
+    "google-extended",
+    "google-firebase",
+    "google-gemini-cli",
+    "google-notebooklm",
+    "googleagent-mariner",
+    "googleagent-urlcontext",
+    "googleother",
+    "henkbot",
+    "iaskbot",
+    "iaskspider",
+    "icc-crawler",
+    "imagesiftbot",
+    "imagespider",
+    "img2dataset",
+    "isscyberriskcrawler",
+    "kagi-fetcher",
+    "kangaroo bot",
+    "kimi-agent",
+    "kimi-searchbot",
+    "kimi-user",
+    "kimibot",
+    "klaviyoaibot",
+    "kunatocrawler",
+    "laion-huggingface-processor",
+    "laiondownloader",
+    "lcc",
+    "lightpanda",
+    "linerbot",
+    "linguee bot",
+    "linkupbot",
+    "manus-user",
+    "meta-webindexer",
+    "mistralai",
+    "mozilla-tabstack",
+    "mycentralaiscraperbot",
+    "nagetbot",
+    "netestate imprint crawler",
+    "newsai",
+    "notebooklm",
+    "novaact",
+    "oai-adsbot",
+    "omgili",
+    "openai",
+    "opencode",
+    "operator",
+    "pangubot",
+    "panscient",
+    "phindbot",
+    "poggio-citations",
+    "poseidon research crawler",
+    "qodercli",
+    "qualifiedbot",
+    "querit-searchbot",
+    "queritbot",
+    "quillbot",
+    "qwenbot",
+    "reflectionbot",
+    "sbintuitionsbot",
+    "scrapy",
+    "shap-user",
+    "shapbot",
+    "sidetrade indexer bot",
+    "tavilybot",
+    "terra cotta",
+    "terracotta",
+    "thinkbot",
+    "tiktokspider",
+    "timpibot",
+    "tongyibot",
+    "trae",
+    "twinagent",
+    "useai",
+    "velenpublicwebcrawler",
+    "wardbot",
+    "webzio-extended",
+    "wpbot",
+    "wrtnbot",
+    "yak",
+    "yandexadditional",
+    "yiyanbot",
+    "youbot",
+    "zanistabot",
 ];
 
-/// Returns `true` if the User-Agent is missing, empty, or matches known bot patterns.
-/// HTTP libraries (curl, reqwest, python-requests, etc.) are intentionally NOT blocked.
 pub fn is_bot(user_agent: Option<&str>) -> bool {
     let ua = match user_agent {
         Some(ua) if !ua.trim().is_empty() => ua.to_ascii_lowercase(),
