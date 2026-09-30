@@ -4,15 +4,16 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-tokio = { version = "1.52.2", features = ["full"] }
+tokio = { version = "1.53.1", features = ["full"] }
 axum = { version = "0.8.9", features = ["macros"]}
 axum-server = { version = "0.8.0", features = ["tls-rustls"] }
-serde_json = "1.0.150"
-tower-http = { version = "0.7.0", features = ["cors", "fs"] }
+serde_json = "1.0.151"
+tower-http = { version = "0.7.1", features = ["cors", "fs"] }
 tower = "0.5.3"
-reqwest = "0.13.4"
-base64 = "0.22.1"
+reqwest = "0.13.5"
+base64 = "0.23.1"
 tower_governor = "0.8.0"
+rquickjs = { version = "0.14", features = ["macro", "futures"] }
 
 [profile.release]
 opt-level = "z"
