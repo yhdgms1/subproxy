@@ -98,7 +98,7 @@ function withDirectRouting(server) {
 
   clone.routing = routing;
   clone.dns = directDns();
-  clone.remarks = server.remarks + ' | Direct';
+  clone.remarks = remarksOf(server) + ' | Direct';
 
   if (!clone.meta) {
     clone.meta = {};
