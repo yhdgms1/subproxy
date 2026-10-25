@@ -1,0 +1,41 @@
+# subproxy
+
+> Stateless VPN subscription proxy and transformation service.
+
+`subproxy` acts as an intermediary for VPN subscription profiles (such as VLESS, Trojan, Clash, Sing-box, etc.). It captures client headers, proxies subscription requests to upstream providers, and allows on-the-fly configuration transformation using an embedded QuickJS engine.
+
+## Core Endpoints
+
+- `GET /whoami`: Captures inbound client handshake headers (`User-Agent`, `x-*`) and returns a VLESS configuration template. The serialized header state is encoded in URL-safe Base64 inside the `serverDescription` (or ID) attribute.
+- `GET /{host}/{path}/{headers}`: Fetches the upstream subscription from `https://{host}/{path}` using the Base64-encoded headers captured from `/whoami`.
+- `GET /{host}/{path}/{headers}/{script}`: Fetches upstream subscription and executes a custom JavaScript transformation script encoded in URL-safe Base64.
+- `GET /robots.txt`: Crawler exclusion rules.
+- `GET /llms.txt`: Machine-readable instructions and documentation for LLM agents.
+
+## Usage Workflow
+
+1. **Capture client profile**:
+   Add the `/whoami` endpoint to your proxy client (Clash, Sing-box, v2rayN, Shadowrocket, etc.).
+2. **Extract encoded headers**:
+   Open the received JSON template and copy the value from `serverDescription`.
+3. **Form the proxy subscription link**:
+   Construct the URL: `/{host}/{path}/{serverDescription}` where `{host}` and `{path}` point to the upstream subscription provider.
+4. **(Optional) Apply a transform script**:
+   Encode an ES module in URL-safe Base64 and append it: `/{host}/{path}/{serverDescription}/{script}`.
+
+## Script Engine (QuickJS)
+
+Scripts are ES modules executed asynchronously in an embedded QuickJS sandbox.
+
+### Handler Contract
+
+```js
+export const handle = async (response_body, response_headers) => {
+  // response_body: parsed JSON object if valid JSON, otherwise string.
+  // response_headers: object containing forwarded subscription headers.
+  return {
+    body: typeof response_body === "string" ? response_body : JSON.stringify(response_body),
+    headers: response_headers
+  };
+};
+```
