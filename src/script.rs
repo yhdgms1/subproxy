@@ -9,6 +9,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 
 const SCRIPT_ENCODED_MAX: usize = 16 * 1024;
+pub const SCRIPT_SOURCE_MAX: usize = SCRIPT_ENCODED_MAX / 4 * 3;
 const SCRIPT_TIMEOUT: Duration = Duration::from_secs(1);
 const SCRIPT_MEMORY_LIMIT: usize = 8 * 1024 * 1024;
 
@@ -16,6 +17,14 @@ const TITLE_SCRIPT: &str = "Ошибка выполнения скрипта";
 const TITLE_TIMEOUT: &str = "Превышено время выполнения скрипта";
 const TITLE_MEMORY: &str = "Превышен лимит памяти скрипта";
 const TITLE_EMPTY: &str = "Пустой ответ скрипта";
+
+pub fn encode(source: &str) -> Result<String, Error> {
+    if source.len() > SCRIPT_SOURCE_MAX {
+        return Err(Error::new("Размер скрипта слишком велик"));
+    }
+
+    Ok(URL_SAFE.encode(source))
+}
 
 pub fn decode(encoded: &str) -> Result<String, Error> {
     if encoded.len() > SCRIPT_ENCODED_MAX {

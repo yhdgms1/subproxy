@@ -9,6 +9,7 @@
 - `GET /whoami`: Captures inbound client handshake headers (`User-Agent`, `x-*`) and returns a VLESS configuration template. The serialized header state is encoded in URL-safe Base64 inside the `serverDescription` (or ID) attribute.
 - `GET /{host}/{path}/{headers}`: Fetches the upstream subscription from `https://{host}/{path}` using the Base64-encoded headers captured from `/whoami`.
 - `GET /{host}/{path}/{headers}/{script}`: Fetches upstream subscription and executes a custom JavaScript transformation script encoded in URL-safe Base64.
+- `POST /api/base64encode`: Accepts a JavaScript source as the raw request body and returns its URL-safe Base64 representation as plain text.
 - `GET /robots.txt`: Crawler exclusion rules.
 - `GET /llms.txt`: Machine-readable instructions and documentation for LLM agents.
 

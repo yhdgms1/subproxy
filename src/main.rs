@@ -8,7 +8,10 @@ use axum::extract::{Path, Request, State};
 use axum::http::{HeaderMap, Method, StatusCode, header};
 use axum::middleware::{self, Next};
 use axum::response::{IntoResponse, Response};
-use axum::{Router, routing::get};
+use axum::{
+    Router,
+    routing::{get, post},
+};
 use base64::{Engine as _, engine::general_purpose::URL_SAFE};
 use reqwest::Client;
 use reqwest::header::CONTENT_TYPE;
@@ -33,7 +36,8 @@ struct AppState {
 #[tokio::main]
 async fn main() {
     let cors = CorsLayer::new()
-        .allow_methods([Method::GET])
+        .allow_methods([Method::GET, Method::POST])
+        .allow_headers([header::CONTENT_TYPE])
         .allow_origin(Any);
 
     let governor_conf = GovernorConfigBuilder::default()
@@ -62,6 +66,7 @@ async fn main() {
         .route("/robots.txt", get(robots_handler))
         .route("/llms.txt", get(llms_handler))
         .route("/whoami", get(whoami_handler))
+        .route("/api/base64encode", post(base64encode_handler))
         .route("/{host}/{path}/{headers}", get(sub_handler))
         .route("/{host}/{path}/{headers}/{script}", get(script_handler))
         .layer(middleware::from_fn(bot_middleware))
@@ -176,6 +181,47 @@ async fn script_handler(
         Ok(subscription) => subscription.into_response(),
         Err(err) => subscription::error_response(err.title()),
     }
+}
+
+#[axum::debug_handler]
+async fn base64encode_handler(request: Request) -> Response {
+    let bytes = match axum::body::to_bytes(request.into_body(), script::SCRIPT_SOURCE_MAX).await {
+        Ok(bytes) => bytes,
+        Err(_) => {
+            return api_error(
+                StatusCode::PAYLOAD_TOO_LARGE,
+                "Размер скрипта слишком велик",
+            );
+        }
+    };
+
+    let source = match String::from_utf8(bytes.to_vec()) {
+        Ok(source) => source,
+        Err(_) => return api_error(StatusCode::BAD_REQUEST, "Ошибка конвертации скрипта"),
+    };
+
+    if source.trim().is_empty() {
+        return api_error(StatusCode::BAD_REQUEST, "Пустой скрипт");
+    }
+
+    match script::encode(&source) {
+        Ok(encoded) => (
+            StatusCode::OK,
+            [(header::CONTENT_TYPE, "text/plain; charset=UTF-8")],
+            encoded,
+        )
+            .into_response(),
+        Err(err) => api_error(StatusCode::PAYLOAD_TOO_LARGE, err.title()),
+    }
+}
+
+fn api_error(status: StatusCode, message: &str) -> Response {
+    (
+        status,
+        [(header::CONTENT_TYPE, "text/plain; charset=UTF-8")],
+        message.to_string(),
+    )
+        .into_response()
 }
 
 #[axum::debug_handler]

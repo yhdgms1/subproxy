@@ -14,6 +14,10 @@ export const handle = async (response_body, response_headers) => {
 };
 ```
 
+## Кодирование скриптов
+
+`POST /api/base64encode` принимает исходный `.js` телом запроса и возвращает его в URL-safe base64, который можно сразу добавлять в конец подписки.
+
 ## Сборка
 
 ```powershell
